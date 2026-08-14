@@ -81,7 +81,7 @@
   .day-tab .day-tab-sub{display:block;font-size:10px;opacity:.75;font-weight:400;}
 
   /* cards */
-  .card{background:var(--color-surface);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow-sm);}
+  .card{background:var(--color-surface);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);}
   .card-kicker{font-size:11px;opacity:.6;letter-spacing:.04em;margin-bottom:4px;}
   .card-title{font-family:var(--font-heading);font-size:17px;color:var(--color-text);margin-bottom:2px;}
   .trip-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
@@ -112,13 +112,14 @@
   .item-row{display:flex;justify-content:space-between;gap:8px;}
   .item-name{font-size:14px;font-weight:700;}
   .item-time{font-size:12px;font-weight:700;color:var(--color-accent-700);white-space:nowrap;}
-  .item-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .item-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .item-tags + .item-tags{margin-top:6px;}
   .item-addr{font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-pill);background:var(--color-accent-100);color:var(--color-accent-700);}
   .item-addr:hover{background:var(--color-accent-200);}
   .item-directions{font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-pill);background:var(--color-accent-100);color:var(--color-accent-700);}
   .item-directions:hover{background:var(--color-accent-200);}
   .item-transport{font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-pill);background:var(--color-accent2-100);color:var(--color-accent2-700);}
-  .item-memo{font-size:12px;opacity:.65;margin-top:4px;font-style:italic;}
+  .item-memo{font-size:12px;opacity:.65;margin-top:8px;font-style:italic;}
 
   .empty-hint{font-size:13px;opacity:.6;text-align:center;padding:22px 10px;border:1.5px dashed var(--color-divider);border-radius:var(--radius-md);margin-bottom:8px;}
   .empty-state{text-align:center;padding:32px 16px;}
@@ -465,28 +466,28 @@
     top.appendChild(el('div','item-name', escapeHtml(item.name)));
     top.appendChild(el('div','item-time', item.time || '--:--'));
     body.appendChild(top);
-    if(item.address || item.mapLink || item.transport){
-      const tags = el('div','item-tags');
-      if(item.address || item.mapLink){
-        const link = el('a','item-addr', icon('map-pin',12) + escapeHtml(item.address || '지도에서 보기'));
-        link.href = item.mapLink ? item.mapLink : 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(item.address);
-        link.target='_blank'; link.rel='noopener';
-        link.onclick = (e)=> e.stopPropagation();
-        tags.appendChild(link);
+    if(item.address || item.mapLink){
+      const locationRow = el('div','item-tags');
+      const link = el('a','item-addr', icon('map-pin',12) + escapeHtml(item.address || '지도에서 보기'));
+      link.href = item.mapLink ? item.mapLink : 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(item.address);
+      link.target='_blank'; link.rel='noopener';
+      link.onclick = (e)=> e.stopPropagation();
+      locationRow.appendChild(link);
 
-        const directions = el('a','item-directions', icon('route',12) + '길찾기');
-        let dirUrl = 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(item.address || item.mapLink);
-        const mode = travelModeFor(item.transport);
-        if(mode) dirUrl += '&travelmode='+mode;
-        directions.href = item.address ? dirUrl : item.mapLink;
-        directions.target='_blank'; directions.rel='noopener';
-        directions.onclick = (e)=> e.stopPropagation();
-        tags.appendChild(directions);
-      }
-      if(item.transport){
-        tags.appendChild(el('span','item-transport', icon(transportIcon(item.transport),12) + escapeHtml(item.transport)));
-      }
-      body.appendChild(tags);
+      const directions = el('a','item-directions', icon('route',12) + '길찾기');
+      let dirUrl = 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(item.address || item.mapLink);
+      const mode = travelModeFor(item.transport);
+      if(mode) dirUrl += '&travelmode='+mode;
+      directions.href = item.address ? dirUrl : item.mapLink;
+      directions.target='_blank'; directions.rel='noopener';
+      directions.onclick = (e)=> e.stopPropagation();
+      locationRow.appendChild(directions);
+      body.appendChild(locationRow);
+    }
+    if(item.transport){
+      const transportRow = el('div','item-tags');
+      transportRow.appendChild(el('span','item-transport', icon(transportIcon(item.transport),12) + escapeHtml(item.transport)));
+      body.appendChild(transportRow);
     }
     if(item.memo) body.appendChild(el('div','item-memo', escapeHtml(item.memo)));
     row.appendChild(badge); row.appendChild(body);
