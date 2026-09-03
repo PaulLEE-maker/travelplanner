@@ -148,7 +148,11 @@
   .input[type=date]{cursor:pointer;}
   .field-row{display:flex;gap:8px;}
   .field-row .field{flex:1;min-width:0;}
-  .field-row .input{padding-left:8px;padding-right:8px;text-align:center;}
+  .field-row input[type=date],
+  .field-row input[type=time]{
+    display:block;width:auto;max-width:132px;min-width:0;
+    margin:0 auto;padding-left:10px;padding-right:10px;text-align:center;
+  }
   .chip-grid{display:grid;gap:6px;}
   .dialog-actions{display:flex;gap:8px;margin-top:16px;}
   .dialog-actions .btn{flex:1;}
