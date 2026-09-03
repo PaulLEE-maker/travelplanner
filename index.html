@@ -952,7 +952,7 @@
         if(!app) return;
         if(!snap.exists()){ pushToCloud(); return; }
         const remote = snap.data();
-        if(remote && remote.updatedAt && remote.updatedAt > app.getUpdatedAt()){
+        if(remote && typeof remote.updatedAt === 'number' && remote.updatedAt >= app.getUpdatedAt()){
           applyingRemote = true;
           try{ app.setData(JSON.parse(remote.payload), remote.updatedAt); }
           catch(e){ console.error('bad cloud payload', e); }
