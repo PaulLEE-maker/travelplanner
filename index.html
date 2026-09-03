@@ -57,6 +57,9 @@
   .brand-row{display:flex;align-items:center;gap:8px;white-space:nowrap;font-family:var(--font-heading);font-size:18px;font-weight:700;color:var(--color-text);}
   .brand-row svg{color:var(--color-accent-500);}
   .sync-line{font-size:11px;opacity:.55;margin-top:3px;}
+  .sync-line.synced{opacity:.85;font-weight:700;color:var(--color-accent2-700);}
+  .sync-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--color-accent2-500);margin-right:5px;}
+  .tag-accent2{background:var(--color-accent2-100);color:var(--color-accent2-700);}
 
   /* buttons */
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);font-weight:700;font-size:13px;line-height:1.2;border-radius:var(--radius-pill);padding:10px 16px;border:1.5px solid transparent;cursor:pointer;white-space:nowrap;transition:filter .15s,background .15s,border-color .15s,opacity .15s,color .15s;background:none;color:var(--color-text);}
@@ -293,15 +296,19 @@
     catch(e){ toast('저장에 실패했어요'); }
     if(window.cloudSync && window.cloudSync.push) window.cloudSync.push();
   }
+  function isSynced(){ return !!(window.cloudSync && window.cloudSync.ready && window.cloudSync.user); }
   function syncStatusText(){
-    if(window.cloudSync && window.cloudSync.ready && window.cloudSync.user){
+    if(isSynced()){
       return (window.cloudSync.user.displayName || window.cloudSync.user.email) + '님으로 동기화 중';
     }
     return '이 브라우저에 안전하게 저장돼요';
   }
   function renderSyncLine(){
     const line = document.querySelector('.sync-line');
-    if(line) line.textContent = syncStatusText();
+    if(!line) return;
+    const synced = isSynced();
+    line.classList.toggle('synced', synced);
+    line.innerHTML = (synced ? '<span class="sync-dot"></span>' : '') + escapeHtml(syncStatusText());
   }
 
   // ---------------- modal ----------------
@@ -791,14 +798,20 @@
       }
 
       dialog.appendChild(el('div','eyebrow','저장 상태'));
-      dialog.appendChild(el('div','', syncStatusText()));
-      if(window.cloudSync && window.cloudSync.ready){
-        if(window.cloudSync.user){
-          const signOutBtn = el('button','btn btn-secondary btn-block', icon('log-out',14)+'로그아웃');
-          signOutBtn.style.marginTop='8px';
-          signOutBtn.onclick = ()=> window.cloudSync.signOut();
-          dialog.appendChild(signOutBtn);
-        }else{
+      if(isSynced()){
+        const statusRow = el('div','');
+        statusRow.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+        statusRow.appendChild(el('span','tag tag-accent2', icon('refresh-cw',11)+'동기화됨'));
+        statusRow.appendChild(el('span','', escapeHtml(window.cloudSync.user.email || window.cloudSync.user.displayName || '')));
+        statusRow.lastChild.style.cssText = 'font-size:12px;opacity:.7;';
+        dialog.appendChild(statusRow);
+        const signOutBtn = el('button','btn btn-secondary btn-block', icon('log-out',14)+'로그아웃');
+        signOutBtn.style.marginTop='10px';
+        signOutBtn.onclick = ()=> window.cloudSync.signOut();
+        dialog.appendChild(signOutBtn);
+      }else{
+        dialog.appendChild(el('div','', syncStatusText()));
+        if(window.cloudSync && window.cloudSync.ready){
           dialog.appendChild(el('p','backup-hint','컴퓨터와 폰에서 같은 구글 계정으로 로그인하면 여행 데이터가 자동으로 동기화돼요.'));
           const signInBtn = el('button','btn btn-primary btn-block', icon('refresh-cw',14)+'구글 계정으로 동기화하기');
           signInBtn.onclick = ()=> window.cloudSync.signIn();
@@ -885,6 +898,7 @@
       renderSyncLine();
     },
     toast: (msg)=> toast(msg),
+    openSettings: ()=> showSettingsModal(),
   };
   window.cloudSync.onAuthChange(()=>{
     renderSyncLine();
@@ -958,7 +972,12 @@
       if(window.cloudSync._cb) window.cloudSync._cb(user);
     });
 
-    getRedirectResult(auth).catch((e)=>{
+    getRedirectResult(auth).then((result)=>{
+      if(result && result.user && window.__travelApp){
+        window.__travelApp.toast('구글 계정 동기화가 시작되었습니다');
+        window.__travelApp.openSettings();
+      }
+    }).catch((e)=>{
       console.error('redirect sign-in failed', e);
       if(window.__travelApp) window.__travelApp.toast('로그인 실패: ' + (e.code || e.message || '알 수 없는 오류'));
     });
