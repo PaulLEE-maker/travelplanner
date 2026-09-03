@@ -913,7 +913,7 @@
 (async function(){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js");
-    const { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } =
+    const { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } =
       await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js");
     const { getFirestore, doc, setDoc, onSnapshot } =
       await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
@@ -972,19 +972,14 @@
       if(window.cloudSync._cb) window.cloudSync._cb(user);
     });
 
-    getRedirectResult(auth).then((result)=>{
-      if(result && result.user && window.__travelApp){
-        window.__travelApp.toast('구글 계정 동기화가 시작되었습니다');
-        window.__travelApp.openSettings();
-      }
-    }).catch((e)=>{
-      console.error('redirect sign-in failed', e);
-      if(window.__travelApp) window.__travelApp.toast('로그인 실패: ' + (e.code || e.message || '알 수 없는 오류'));
-    });
-
     window.cloudSync.signIn = async () => {
-      try{ await signInWithRedirect(auth, provider); }
-      catch(e){
+      try{
+        const result = await signInWithPopup(auth, provider);
+        if(result && result.user && window.__travelApp){
+          window.__travelApp.toast('구글 계정 동기화가 시작되었습니다');
+          window.__travelApp.openSettings();
+        }
+      }catch(e){
         console.error('sign-in failed', e);
         if(window.__travelApp) window.__travelApp.toast('로그인 실패: ' + (e.code || e.message || '알 수 없는 오류'));
       }
