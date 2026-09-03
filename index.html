@@ -231,6 +231,13 @@
     const found = TRANSPORTS.find(t=>t.label===lastToken(label));
     return found ? found.icon : 'route';
   }
+  function itemTimeLabel(item){
+    const start = item.startTime || item.time || '';
+    const end = item.endTime || '';
+    if(start && end) return `${start}–${end}`;
+    if(start || end) return start || end;
+    return '--:--';
+  }
 
   const $ = sel => document.querySelector(sel);
   const el = (tag, cls, html) => { const e=document.createElement(tag); if(cls) e.className=cls; if(html!==undefined) e.innerHTML=html; return e; };
@@ -471,7 +478,7 @@
   function dayView(trip, idx){
     const day = trip.days[idx];
     const wrap = el('div','day-view');
-    const items = [...day.items].sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+    const items = [...day.items].sort((a,b)=>(a.startTime||a.time||'99:99').localeCompare(b.startTime||b.time||'99:99'));
     if(items.length===0) wrap.appendChild(el('div','empty-hint','이 날의 일정이 아직 없어요'));
     items.forEach(item=> wrap.appendChild(itemRow(item, trip, day)));
     const addBtn = el('button','btn btn-secondary btn-dashed btn-block', icon('plus',14)+'일정 추가');
@@ -487,7 +494,7 @@
 
     let any=false;
     trip.days.forEach((day,i)=>{
-      const items = [...day.items].sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+      const items = [...day.items].sort((a,b)=>(a.startTime||a.time||'99:99').localeCompare(b.startTime||b.time||'99:99'));
       if(items.length===0) return;
       any=true;
       wrap.appendChild(el('div','section-head', `D${i+1} · ${fmtDate(day.date)}${day.region?' · '+escapeHtml(day.region):''}`));
@@ -531,7 +538,7 @@
     const body = el('div','item-body');
     const top = el('div','item-row');
     top.appendChild(el('div','item-name', escapeHtml(item.name)));
-    top.appendChild(el('div','item-time', item.time || '--:--'));
+    top.appendChild(el('div','item-time', itemTimeLabel(item)));
     body.appendChild(top);
     if(item.address || item.mapLink){
       const locationRow = el('div','item-tags');
@@ -646,10 +653,11 @@
     openModal(isEdit ? '일정 수정' : '일정 추가', (dialog)=>{
       dialog.appendChild(chipPicker('category','종류', CATEGORIES, existingItem ? lastToken(existingItem.category) : CATEGORIES[0].label, {cols:3, toggle:false, iconSize:14, fontSize:12, pad:'7px 8px'}));
 
-      const row = el('div','field-row');
-      row.appendChild(fieldRow('time','time','시간', '', existingItem?.time || ''));
-      row.appendChild(fieldRow('date','date','날짜', '', existingItem?._date || defaultDate));
-      dialog.appendChild(row);
+      dialog.appendChild(fieldRow('date','date','날짜', '', existingItem?._date || defaultDate));
+      const timeRow = el('div','field-row');
+      timeRow.appendChild(fieldRow('startTime','time','시작 시간', '', existingItem?.startTime || existingItem?.time || ''));
+      timeRow.appendChild(fieldRow('endTime','time','종료 시간 (선택)', '', existingItem?.endTime || ''));
+      dialog.appendChild(timeRow);
 
       dialog.appendChild(fieldRow('name','text','이름 *', '예: 조식 / 공항 이동 / 성 관람', existingItem?.name || ''));
       dialog.appendChild(fieldRow('address','text','지도 검색어 / 주소', '', existingItem?.address || '',
@@ -683,7 +691,8 @@
         const payload = {
           id: existingItem ? existingItem.id : uid(),
           category: dialog.querySelector('[name=category]').value,
-          time: dialog.querySelector('[name=time]').value,
+          startTime: dialog.querySelector('[name=startTime]').value,
+          endTime: dialog.querySelector('[name=endTime]').value,
           name,
           address: dialog.querySelector('[name=address]').value.trim(),
           mapLink: dialog.querySelector('[name=mapLink]').value.trim(),
