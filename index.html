@@ -631,9 +631,10 @@
   }
 
   function renderMain(){
+    const scrollY = window.scrollY;
     const main = $('#main'); main.innerHTML='';
     const trip = data.trips.find(t=>t.id===data.activeTripId);
-    if(!trip){ main.appendChild(emptyState()); return; }
+    if(!trip){ main.appendChild(emptyState()); window.scrollTo(0, scrollY); return; }
 
     main.appendChild(tripHeader(trip));
 
@@ -659,6 +660,7 @@
       }
       main.appendChild(dayView(trip, activeDayIdx[trip.id]));
     }
+    window.scrollTo(0, scrollY);
   }
 
   function viewSeg(trip, mode){
