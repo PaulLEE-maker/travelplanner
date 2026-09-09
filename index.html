@@ -619,7 +619,7 @@
   function render(){ renderTripTabs(); renderMain(); }
 
   function renderTripTabs(){
-    const nav = $('#tripTabs'); nav.innerHTML='';
+    const nav = $('#tripTabs'); const scrollLeft = nav.scrollLeft; nav.innerHTML='';
     data.trips.forEach(trip=>{
       const tab = el('button','btn trip-tab '+(trip.id===data.activeTripId?'btn-primary':'btn-secondary'), escapeHtml(trip.title));
       tab.onclick = ()=>{ data.activeTripId = trip.id; save(); render(); };
@@ -628,10 +628,13 @@
     const add = el('button','btn btn-secondary btn-dashed', icon('plus',14)+'새 여행');
     add.onclick = ()=> showNewTripModal();
     nav.appendChild(add);
+    nav.scrollLeft = scrollLeft;
   }
 
   function renderMain(){
     const scrollY = window.scrollY;
+    const oldDayTabsNav = document.querySelector('#main .tab-row');
+    const dayTabsScrollLeft = oldDayTabsNav ? oldDayTabsNav.scrollLeft : 0;
     const main = $('#main'); main.innerHTML='';
     const trip = data.trips.find(t=>t.id===data.activeTripId);
     if(!trip){ main.appendChild(emptyState()); window.scrollTo(0, scrollY); return; }
@@ -647,7 +650,9 @@
       main.appendChild(overviewView(trip));
       requestAnimationFrame(()=> initOverviewMaps(trip));
     }else{
-      main.appendChild(dayTabsNav(trip));
+      const tabsNav = dayTabsNav(trip);
+      main.appendChild(tabsNav);
+      tabsNav.scrollLeft = dayTabsScrollLeft;
       const day = trip.days[activeDayIdx[trip.id]];
       if(day){
         const dateRow = el('div','day-date-row');
