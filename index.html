@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>✈️ Hwan &amp; Bom 여행 플래너</title>
 <style>
   :root{
@@ -151,7 +151,7 @@
   .field{margin-bottom:12px;}
   .field label{display:block;font-size:12px;font-weight:600;opacity:.7;margin-bottom:5px;}
   .field .hint{display:block;font-size:11px;opacity:.6;margin-top:4px;font-weight:400;}
-  .input{width:100%;background:var(--color-bg);border:1.5px solid var(--color-divider);color:var(--color-text);padding:10px 16px;border-radius:var(--radius-pill);font-size:14px;font-family:var(--font-body);}
+  .input{width:100%;background:var(--color-bg);border:1.5px solid var(--color-divider);color:var(--color-text);padding:10px 16px;border-radius:var(--radius-pill);font-size:16px;font-family:var(--font-body);}
   .input:focus{outline:2px solid var(--color-accent-500);outline-offset:1px;}
   .input[type=date]{cursor:pointer;}
   .field-row{display:flex;gap:8px;}
@@ -356,10 +356,9 @@
     f.appendChild(input);
     if(hint) f.appendChild(el('span','hint',hint));
     if(type==='date'){
-      f.style.cursor='pointer';
-      f.addEventListener('click', ()=>{
-        if(input.showPicker){ try{ input.showPicker(); }catch(e){ input.focus(); } }
-        else input.focus();
+      input.style.cursor='pointer';
+      input.addEventListener('click', ()=>{
+        if(input.showPicker){ try{ input.showPicker(); }catch(e){} }
       });
     }
     return f;
