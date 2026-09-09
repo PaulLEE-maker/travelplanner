@@ -118,6 +118,8 @@
   .item-time{font-size:12px;font-weight:700;color:var(--color-accent-700);white-space:nowrap;}
   .item-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
   .item-tags + .item-tags{margin-top:6px;}
+  .day-map{height:160px;border-radius:var(--radius-md);overflow:hidden;margin:8px 0 12px;background:var(--color-surface);border:1px solid var(--color-divider);}
+  .day-map:empty::before{content:'위치 확인 중...';display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;opacity:.5;}
   .item-addr{font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-pill);background:var(--color-accent-100);color:var(--color-accent-700);}
   .item-addr:hover{background:var(--color-accent-200);}
   .item-directions{font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-pill);background:var(--color-accent-100);color:var(--color-accent-700);}
@@ -213,6 +215,7 @@
   }
 
   const STORAGE_KEY = 'travel-planner-app-data';
+  const GOOGLE_MAPS_API_KEY = ''; // 설정하면 오버뷰 탭에 날짜별 지도가 표시돼요 (Google Cloud Console에서 발급)
   let data = null;                 // {trips:[...], activeTripId}
   let activeDayIdx = {};           // tripId -> day index (session only)
   let viewMode = {};               // tripId -> 'overview' | 'schedule'
@@ -245,6 +248,114 @@
   function transportIcon(label){
     const found = TRANSPORTS.find(t=>t.label===lastToken(label));
     return found ? found.icon : 'route';
+  }
+
+  // ---------------- overview map ----------------
+  const MAP_STYLE = [
+    {featureType:'poi', elementType:'labels', stylers:[{visibility:'off'}]},
+    {featureType:'transit', elementType:'labels', stylers:[{visibility:'off'}]},
+  ];
+  let gmapsLoadPromise = null;
+  function loadGoogleMaps(){
+    if(!GOOGLE_MAPS_API_KEY) return Promise.resolve(false);
+    if(gmapsLoadPromise) return gmapsLoadPromise;
+    gmapsLoadPromise = new Promise((resolve)=>{
+      let settled = false;
+      const done = (ok)=>{ if(settled) return; settled = true; resolve(ok); };
+      window.__onGMapsLoad = ()=> done(true);
+      const s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(GOOGLE_MAPS_API_KEY)+'&callback=__onGMapsLoad&loading=async';
+      s.async = true;
+      s.onerror = ()=> done(false);
+      document.head.appendChild(s);
+      setTimeout(()=> done(false), 6000);
+    });
+    return gmapsLoadPromise;
+  }
+  function parseCoordsFromMapLink(link){
+    if(!link) return null;
+    let m = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if(m) return {lat:parseFloat(m[1]), lng:parseFloat(m[2])};
+    m = link.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if(m) return {lat:parseFloat(m[1]), lng:parseFloat(m[2])};
+    m = link.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+    if(m) return {lat:parseFloat(m[1]), lng:parseFloat(m[2])};
+    return null;
+  }
+  async function geocodeAddress(address){
+    const ok = await loadGoogleMaps();
+    if(!ok || !address) return null;
+    return new Promise((resolve)=>{
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({address}, (results, status)=>{
+        if(status==='OK' && results && results[0]){
+          const loc = results[0].geometry.location;
+          resolve({lat: loc.lat(), lng: loc.lng()});
+        } else resolve(null);
+      });
+    });
+  }
+  async function resolveCoords(address, mapLink){
+    return parseCoordsFromMapLink(mapLink) || (address ? await geocodeAddress(address) : null);
+  }
+
+  const _geocodeAttempted = new Set();
+  function dayMapBlock(trip, day){
+    if(!GOOGLE_MAPS_API_KEY) return null;
+    if(!day.items.some(it=> it.address || it.mapLink)) return null;
+    const holder = el('div','day-map');
+    holder.id = 'gmap-'+trip.id+'-'+day.date;
+    return holder;
+  }
+  function buildDayMap(container, day){
+    const items = [...day.items].filter(it=> it.lat!=null && it.lng!=null)
+      .sort((a,b)=>(a.startTime||a.time||'99:99').localeCompare(b.startTime||b.time||'99:99'));
+    if(items.length===0){ container.remove(); return; }
+    container.innerHTML = '';
+    const map = new google.maps.Map(container, {
+      disableDefaultUI:true, zoomControl:true, gestureHandling:'cooperative', clickableIcons:false, styles: MAP_STYLE,
+    });
+    const bounds = new google.maps.LatLngBounds();
+    const path = [];
+    items.forEach((it,i)=>{
+      const pos = {lat:it.lat, lng:it.lng};
+      path.push(pos);
+      const marker = new google.maps.Marker({
+        position:pos, map, title:it.name,
+        label:{text:String(i+1), color:'#fff', fontSize:'11px', fontWeight:'700'},
+        icon:{path: google.maps.SymbolPath.CIRCLE, scale:11, fillColor:'#c67139', fillOpacity:1, strokeColor:'#fff', strokeWeight:2},
+      });
+      bounds.extend(pos);
+      const info = new google.maps.InfoWindow({content: '<div style="font-family:sans-serif;font-size:12px;font-weight:700;padding:2px 4px;">'+escapeHtml(it.name)+'</div>'});
+      marker.addListener('click', ()=> info.open(map, marker));
+    });
+    if(path.length>1){
+      new google.maps.Polyline({path, map, strokeColor:'#c67139', strokeOpacity:0.55, strokeWeight:3});
+      map.fitBounds(bounds, 28);
+    }else{
+      map.setCenter(bounds.getCenter());
+      map.setZoom(15);
+    }
+  }
+  async function initOverviewMaps(trip){
+    const containers = [...document.querySelectorAll('.day-map[id^="gmap-'+trip.id+'-"]')];
+    if(containers.length===0) return;
+    const ok = await loadGoogleMaps();
+    if(!ok){ containers.forEach(c=>c.remove()); return; }
+    let changed = false;
+    for(const day of trip.days){
+      const container = document.getElementById('gmap-'+trip.id+'-'+day.date);
+      if(!container) continue;
+      for(const item of day.items){
+        if(item.lat==null && (item.address || item.mapLink) && !_geocodeAttempted.has(item.id)){
+          _geocodeAttempted.add(item.id);
+          const coords = await resolveCoords(item.address, item.mapLink);
+          if(coords){ item.lat = coords.lat; item.lng = coords.lng; changed = true; }
+        }
+      }
+      buildDayMap(container, day);
+    }
+    if(changed) save();
   }
   function itemTimeLabel(item){
     const start = item.startTime || item.time || '';
@@ -490,6 +601,7 @@
 
     if(mode==='overview'){
       main.appendChild(overviewView(trip));
+      requestAnimationFrame(()=> initOverviewMaps(trip));
     }else{
       main.appendChild(dayTabsNav(trip));
       const day = trip.days[activeDayIdx[trip.id]];
@@ -577,6 +689,8 @@
       if(items.length===0) return;
       any=true;
       wrap.appendChild(el('div','section-head', `D${i+1} · ${fmtDate(day.date)}${day.region?' · '+escapeHtml(day.region):''}`));
+      const mapEl = dayMapBlock(trip, day);
+      if(mapEl) wrap.appendChild(mapEl);
       items.forEach(item=> wrap.appendChild(itemRow(item, trip, day)));
     });
     if(!any) wrap.appendChild(el('div','empty-hint','등록된 일정이 없어요'));
@@ -779,17 +893,22 @@
         if(!name){ toast('이름을 입력해주세요'); return; }
         const targetDay = trip.days.find(d=>d.date===newDate);
         if(!targetDay){ toast('여행 기간 밖의 날짜예요'); return; }
+        const addressVal = dialog.querySelector('[name=address]').value.trim();
+        const mapLinkVal = dialog.querySelector('[name=mapLink]').value.trim();
+        const addressUnchanged = existingItem && existingItem.address===addressVal && existingItem.mapLink===mapLinkVal;
         const payload = {
           id: itemId,
           category: dialog.querySelector('[name=category]').value,
           startTime: dialog.querySelector('[name=startTime]').value,
           endTime: dialog.querySelector('[name=endTime]').value,
           name,
-          address: dialog.querySelector('[name=address]').value.trim(),
-          mapLink: dialog.querySelector('[name=mapLink]').value.trim(),
+          address: addressVal,
+          mapLink: mapLinkVal,
           transport: dialog.querySelector('[name=transport]').value.trim(),
           memo: dialog.querySelector('[name=memo]').value.trim(),
           attachments: attachmentFieldEl.getAttachments(),
+          lat: addressUnchanged ? existingItem.lat : null,
+          lng: addressUnchanged ? existingItem.lng : null,
         };
         if(isEdit){
           const oldDay = trip.days.find(d=>d.date===existingItem._date);
@@ -799,6 +918,18 @@
         activeDayIdx[trip.id] = trip.days.indexOf(targetDay);
         save(); render(); closeModal();
         toast(isEdit ? '수정되었습니다' : '일정이 추가되었습니다');
+        if(payload.lat==null && (addressVal || mapLinkVal)){
+          _geocodeAttempted.add(itemId);
+          resolveCoords(addressVal, mapLinkVal).then(coords=>{
+            if(!coords) return;
+            const d = trip.days.find(d=>d.items.some(it=>it.id===itemId));
+            const it = d && d.items.find(it=>it.id===itemId);
+            if(!it) return;
+            it.lat = coords.lat; it.lng = coords.lng;
+            save();
+            if(data.activeTripId===trip.id && (viewMode[trip.id]||'overview')==='overview') renderMain();
+          });
+        }
       };
       cancel.onclick = closeModal;
       dialog.appendChild(actions);
