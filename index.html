@@ -138,12 +138,11 @@
   .item-pin-row{display:flex;align-items:center;gap:7px;margin-top:8px;}
   .item-pin{position:relative;width:25px;height:25px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 1px 2px rgba(32,30,29,.25);text-decoration:none;}
   .item-pin .icon{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(45deg);}
-  .item-pin.dir{background:var(--color-accent-500);color:#fff2eb;}
-  .item-pin.ref,.item-pin.att{width:32px;height:32px;border-radius:11px;transform:none;box-shadow:none;transition:background .15s,transform .15s;}
-  .item-pin.ref:hover,.item-pin.att:hover{transform:translateY(-1px);}
-  .item-pin.ref .icon,.item-pin.att .icon{transform:translate(-50%,-50%);}
-  .item-pin.ref{background:var(--color-accent-100);color:var(--color-accent-700);}
-  .item-pin.ref:hover{background:var(--color-accent-200);}
+  .item-pin.dir,.item-pin.ref,.item-pin.att{width:32px;height:32px;border-radius:11px;transform:none;box-shadow:none;transition:background .15s,transform .15s;}
+  .item-pin.dir:hover,.item-pin.ref:hover,.item-pin.att:hover{transform:translateY(-1px);}
+  .item-pin.dir .icon,.item-pin.ref .icon,.item-pin.att .icon{transform:translate(-50%,-50%);}
+  .item-pin.dir,.item-pin.ref{background:var(--color-accent-100);color:var(--color-accent-700);}
+  .item-pin.dir:hover,.item-pin.ref:hover{background:var(--color-accent-200);}
   .item-pin.att{background:var(--color-accent2-100);color:var(--color-accent2-700);}
   .item-transport{font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-pill);background:var(--color-accent2-100);color:var(--color-accent2-700);}
   .item-memo{font-size:12px;opacity:.65;margin-top:8px;font-style:italic;}
@@ -233,9 +232,12 @@
   function icon(name, size, strokeWidth){
     size = size || 16;
     const sw = strokeWidth || 2.5;
-    const body = name==='link-2'
-      ? '<path d="M9 17H7A5 5 0 0 1 7 7h2" /><path d="M15 7h2a5 5 0 1 1 0 10h-2" /><path d="M8 12h8" />'
-      : (ICONS[name]||ICONS['tag']);
+    const specialIcons = {
+      'link-2':'<path d="M9 17H7A5 5 0 0 1 7 7h2" /><path d="M15 7h2a5 5 0 1 1 0 10h-2" /><path d="M8 12h8" />',
+      'map-pinned':'<path d="M18 8c0 3.6-3.9 7.4-5.4 8.8a1 1 0 0 1-1.2 0C9.9 15.4 6 11.6 6 8a6 6 0 0 1 12 0" /><circle cx="12" cy="8" r="2" /><path d="m8.7 14.3-4.1 2a1 1 0 0 0-.6.9v3.2a.6.6 0 0 0 .9.5l6.2-3.1a2 2 0 0 1 1.8 0l6.2 3.1a.6.6 0 0 0 .9-.5v-3.2a1 1 0 0 0-.6-.9l-4.1-2" />',
+      'navigation':'<path d="m3 11 19-9-9 19-2-8-8-2Z" />',
+    };
+    const body = specialIcons[name] || ICONS[name] || ICONS['tag'];
     return '<svg class="icon" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+sw+'" stroke-linecap="round" stroke-linejoin="round">'+body+'</svg>';
   }
 
@@ -840,7 +842,7 @@
     body.appendChild(top);
     if(item.address || item.mapLink){
       const locationRow = el('div','item-tags');
-      const link = el('a','item-addr', icon('map-pin',12) + escapeHtml(item.address || '지도에서 보기'));
+      const link = el('a','item-addr', icon('map-pinned',15,2.1) + escapeHtml(item.address || '지도에서 보기'));
       link.href = item.mapLink ? item.mapLink : 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(item.address);
       link.target='_blank'; link.rel='noopener';
       link.onclick = (e)=> e.stopPropagation();
@@ -854,7 +856,7 @@
     }
     const pinRow = el('div','item-pin-row');
     if(item.address || item.mapLink){
-      const directions = el('a','item-pin dir', icon('route',12));
+      const directions = el('a','item-pin dir', icon('navigation',16,2.1));
       let dirUrl = 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(item.address || item.mapLink);
       const mode = travelModeFor(item.transport);
       if(mode) dirUrl += '&travelmode='+mode;
