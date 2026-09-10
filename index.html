@@ -126,8 +126,10 @@
   .day-toggle .icon{transition:transform .15s;}
   .day-toggle.expanded .icon{transform:rotate(180deg);}
   .day-chip-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin:8px 0 14px;}
-  .day-chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:var(--radius-pill);background:var(--color-surface);border:1.5px solid var(--color-divider);color:var(--color-text);font-size:12px;font-weight:700;font-family:var(--font-body);white-space:nowrap;cursor:pointer;}
-  .day-chip:active{background:var(--color-accent-100);}
+  .day-chip{flex:0 0 auto;display:inline-flex;align-items:center;padding:2px;border-radius:var(--radius-pill);background:var(--color-surface);border:1.5px solid var(--color-divider);}
+  .day-chip-main{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:var(--radius-pill);background:none;border:none;color:var(--color-text);font-size:12px;font-weight:700;font-family:var(--font-body);white-space:nowrap;cursor:pointer;}
+  .day-chip-main:active{background:var(--color-accent-100);}
+  .day-chip-link{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-right:2px;border-radius:50%;background:var(--color-accent-100);color:var(--color-accent-700);}
   .item-addr{font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-pill);background:var(--color-accent-100);color:var(--color-accent-700);}
   .item-addr:hover{background:var(--color-accent-200);}
   .item-directions{font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-pill);background:var(--color-accent-100);color:var(--color-accent-700);}
@@ -792,9 +794,24 @@
   function dayChipRow(trip, day, items){
     const row = el('div','day-chip-row');
     items.forEach(item=>{
-      const chip = el('button','day-chip', icon(categoryIcon(item.category),12)+`<span>${escapeHtml(item.name)}</span>`);
-      chip.type='button';
-      chip.onclick = ()=> showItemModal(trip, day.date, item);
+      const chip = el('div','day-chip');
+      const main = el('button','day-chip-main', icon(categoryIcon(item.category),12)+`<span>${escapeHtml(item.name)}</span>`);
+      main.type='button';
+      main.onclick = ()=> showItemModal(trip, day.date, item);
+      chip.appendChild(main);
+      if(item.attachments && item.attachments.length===1){
+        const att = item.attachments[0];
+        const attLink = el('a','day-chip-link', icon('paperclip',11));
+        attLink.href = att.url; attLink.target='_blank'; attLink.rel='noopener'; attLink.title = att.name;
+        attLink.onclick = (e)=> e.stopPropagation();
+        chip.appendChild(attLink);
+      }
+      if(item.refLink){
+        const refLinkEl = el('a','day-chip-link', icon('external-link',11));
+        refLinkEl.href = item.refLink; refLinkEl.target='_blank'; refLinkEl.rel='noopener'; refLinkEl.title = '참고링크';
+        refLinkEl.onclick = (e)=> e.stopPropagation();
+        chip.appendChild(refLinkEl);
+      }
       row.appendChild(chip);
     });
     return row;
@@ -842,7 +859,15 @@
     }
     if(item.attachments && item.attachments.length){
       const attRow = el('div','item-tags');
-      attRow.appendChild(el('span','item-transport', icon('paperclip',12) + `첨부 ${item.attachments.length}개`));
+      if(item.attachments.length===1){
+        const att = item.attachments[0];
+        const attLink = el('a','item-directions', icon('paperclip',12) + escapeHtml(att.name));
+        attLink.href = att.url; attLink.target='_blank'; attLink.rel='noopener';
+        attLink.onclick = (e)=> e.stopPropagation();
+        attRow.appendChild(attLink);
+      }else{
+        attRow.appendChild(el('span','item-transport', icon('paperclip',12) + `첨부 ${item.attachments.length}개`));
+      }
       body.appendChild(attRow);
     }
     if(item.memo) body.appendChild(el('div','item-memo', escapeHtml(item.memo)));
