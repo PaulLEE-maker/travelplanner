@@ -255,7 +255,7 @@
   const TRANSPORTS = [
     {label:'도보', icon:'footprints'}, {label:'지하철', icon:'train-front'}, {label:'버스', icon:'bus'},
     {label:'트램', icon:'cable-car'}, {label:'기차', icon:'train'}, {label:'택시', icon:'car-front'},
-    {label:'항공', icon:'plane'}, {label:'자전거', icon:'bike'},
+    {label:'항공', icon:'plane'}, {label:'자동차', icon:'car'},
   ];
   const FLIGHT_TYPES = [
     {label:'출국', icon:'plane-takeoff'}, {label:'귀국', icon:'plane-landing'}, {label:'이동', icon:'plane'},
@@ -269,7 +269,7 @@
     const t = lastToken(transportLabel);
     if(t==='도보') return 'walking';
     if(t==='자전거') return 'bicycling';
-    if(t==='택시') return 'driving';
+    if(t==='택시' || t==='자동차') return 'driving';
     if(t==='지하철' || t==='버스' || t==='트램' || t==='기차') return 'transit';
     return '';
   }
