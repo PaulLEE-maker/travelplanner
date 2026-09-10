@@ -840,6 +840,7 @@
     top.appendChild(el('div','item-name', escapeHtml(item.name)));
     top.appendChild(el('div','item-time', itemTimeLabel(item)));
     body.appendChild(top);
+    let transportRow = null;
     if(item.address || item.mapLink){
       const locationRow = el('div','item-tags');
       const link = el('a','item-addr', icon('map-pinned',15,2.1) + escapeHtml(item.address || '지도에서 보기'));
@@ -850,7 +851,7 @@
       body.appendChild(locationRow);
     }
     if(item.transport){
-      const transportRow = el('div','item-tags');
+      transportRow = el('div','item-tags');
       transportRow.appendChild(el('span','item-transport', icon(transportIcon(item.transport),12) + escapeHtml(item.transport)));
       body.appendChild(transportRow);
     }
@@ -879,7 +880,7 @@
       attLink.onclick = (e)=> e.stopPropagation();
       pinRow.appendChild(attLink);
     }
-    if(pinRow.children.length) body.appendChild(pinRow);
+    if(pinRow.children.length) body.insertBefore(pinRow, transportRow);
     if(item.attachments && item.attachments.length>1){
       const attRow = el('div','item-tags');
       attRow.appendChild(el('span','item-transport', icon('paperclip',12) + `첨부 ${item.attachments.length}개`));
