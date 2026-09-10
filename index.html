@@ -129,7 +129,10 @@
   .day-chip{flex:0 0 auto;display:inline-flex;align-items:center;padding:2px;border-radius:var(--radius-pill);background:var(--color-surface);border:1.5px solid var(--color-divider);}
   .day-chip-main{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:var(--radius-pill);background:none;border:none;color:var(--color-text);font-size:12px;font-weight:700;font-family:var(--font-body);white-space:nowrap;cursor:pointer;}
   .day-chip-main:active{background:var(--color-accent-100);}
-  .day-chip-link{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-right:2px;border-radius:50%;background:var(--color-accent-100);color:var(--color-accent-700);}
+  .day-chip-link{flex:0 0 auto;position:relative;width:22px;height:22px;margin:1px 3px 6px -1px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 1px 2px rgba(32,30,29,.25);}
+  .day-chip-link .icon{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(45deg);}
+  .day-chip-link.att{background:var(--color-accent2-500);color:#f0fae1;}
+  .day-chip-link.ref{background:var(--color-accent-500);color:#fff2eb;}
   .item-addr{font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-pill);background:var(--color-accent-100);color:var(--color-accent-700);}
   .item-addr:hover{background:var(--color-accent-200);}
   .item-directions{font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-pill);background:var(--color-accent-100);color:var(--color-accent-700);}
@@ -335,7 +338,6 @@
       const marker = new google.maps.Marker({
         position:pos, map, title:it.name,
         label:{text:String(i+1), color:'#fff', fontSize:'11px', fontWeight:'700'},
-        icon:{path: google.maps.SymbolPath.CIRCLE, scale:11, fillColor:'#c67139', fillOpacity:1, strokeColor:'#fff', strokeWeight:2},
       });
       bounds.extend(pos);
       const info = new google.maps.InfoWindow({content: '<div style="font-family:sans-serif;font-size:12px;font-weight:700;padding:2px 4px;">'+escapeHtml(it.name)+'</div>'});
@@ -801,13 +803,13 @@
       chip.appendChild(main);
       if(item.attachments && item.attachments.length===1){
         const att = item.attachments[0];
-        const attLink = el('a','day-chip-link', icon('paperclip',11));
+        const attLink = el('a','day-chip-link att', icon('paperclip',11));
         attLink.href = att.url; attLink.target='_blank'; attLink.rel='noopener'; attLink.title = att.name;
         attLink.onclick = (e)=> e.stopPropagation();
         chip.appendChild(attLink);
       }
       if(item.refLink){
-        const refLinkEl = el('a','day-chip-link', icon('external-link',11));
+        const refLinkEl = el('a','day-chip-link ref', icon('external-link',11));
         refLinkEl.href = item.refLink; refLinkEl.target='_blank'; refLinkEl.rel='noopener'; refLinkEl.title = '참고링크';
         refLinkEl.onclick = (e)=> e.stopPropagation();
         chip.appendChild(refLinkEl);
