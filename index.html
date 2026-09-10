@@ -870,15 +870,15 @@
       refLinkEl.onclick = (e)=> e.stopPropagation();
       pinRow.appendChild(refLinkEl);
     }
-    if(item.attachments && item.attachments.length===1){
-      const att = item.attachments[0];
-      const attLink = el('a','item-pin att', icon('paperclip',16,2.1));
-      attLink.href = att.url; attLink.target='_blank'; attLink.rel='noopener'; attLink.title = att.name;
-      attLink.onclick = (e)=> e.stopPropagation();
-      pinRow.appendChild(attLink);
-    }
-    if(item.attachments && item.attachments.length>1){
-      pinRow.appendChild(el('span','item-transport', icon('paperclip',12) + `첨부 ${item.attachments.length}개`));
+    if(item.attachments && item.attachments.length){
+      item.attachments.forEach((att, index)=>{
+        const attLink = el('a','item-pin att', icon('paperclip',16,2.1));
+        attLink.href = att.url; attLink.target='_blank'; attLink.rel='noopener';
+        attLink.title = item.attachments.length > 1 ? `첨부 ${index + 1}: ${att.name}` : att.name;
+        attLink.setAttribute('aria-label', attLink.title);
+        attLink.onclick = (e)=> e.stopPropagation();
+        pinRow.appendChild(attLink);
+      });
     }
     if(pinRow.children.length) body.appendChild(pinRow);
     if(item.memo) body.appendChild(el('div','item-memo', escapeHtml(item.memo)));
