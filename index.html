@@ -169,6 +169,30 @@
   .flight-meta{font-size:12px;opacity:.65;margin-top:6px;}
   .btn-edit{padding:5px 10px;font-size:11px;flex:0 0 auto;}
 
+  /* pre-trip checklist */
+  .checklist-card{padding:0;overflow:hidden;margin-bottom:16px;}
+  .checklist-toggle{width:100%;display:flex;align-items:center;gap:10px;padding:17px 18px;background:none;border:none;color:var(--color-text);font-family:var(--font-body);cursor:pointer;text-align:left;}
+  .checklist-toggle-title{font-size:15px;font-weight:800;flex:1;}
+  .checklist-count{font-size:11px;font-weight:700;color:var(--color-accent2-700);background:var(--color-accent2-100);padding:4px 9px;border-radius:var(--radius-pill);white-space:nowrap;}
+  .checklist-toggle .icon{transition:transform .15s;}
+  .checklist-toggle.expanded .icon{transform:rotate(180deg);}
+  .checklist-body{border-top:1px solid var(--color-divider);padding:14px 14px 16px;}
+  .checklist-progress{height:6px;background:var(--color-bg);border-radius:var(--radius-pill);overflow:hidden;margin-bottom:14px;}
+  .checklist-progress-bar{height:100%;background:var(--color-accent2-500);border-radius:inherit;transition:width .2s;}
+  .checklist-category{background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:12px;margin-bottom:10px;}
+  .checklist-category-head{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .checklist-category-title{flex:1;font-size:13px;font-weight:800;}
+  .checklist-category-count{font-size:10px;opacity:.55;white-space:nowrap;}
+  .checklist-delete{border:none;background:none;color:var(--color-text);opacity:.4;padding:5px;display:flex;cursor:pointer;border-radius:var(--radius-pill);}
+  .checklist-delete:hover{opacity:1;background:var(--color-accent-100);color:var(--color-accent-700);}
+  .checklist-item{display:flex;align-items:center;gap:9px;min-height:34px;border-top:1px solid rgba(32,30,29,.08);}
+  .checklist-item:first-of-type{border-top:none;}
+  .checklist-item input{width:19px;height:19px;flex:0 0 auto;accent-color:var(--color-accent2-500);cursor:pointer;}
+  .checklist-item-label{flex:1;font-size:13px;line-height:1.35;cursor:pointer;}
+  .checklist-item-label.checked{text-decoration:line-through;opacity:.48;}
+  .checklist-add-item{margin-top:7px;padding:6px 9px;font-size:11px;}
+  .checklist-add-category{justify-content:center;margin-top:4px;}
+
   .empty-hint{font-size:13px;opacity:.6;text-align:center;padding:22px 10px;border:1.5px dashed var(--color-divider);border-radius:var(--radius-md);margin-bottom:8px;}
   .empty-state{text-align:center;padding:32px 16px;}
   .empty-state p{opacity:.7;font-size:14px;margin-bottom:14px;line-height:1.5;}
@@ -258,6 +282,7 @@
   let activeDayIdx = {};           // tripId -> day index (session only)
   let viewMode = {};               // tripId -> 'overview' | 'schedule'
   let expandedDays = {};            // tripId|date -> bool (overview item list expanded)
+  let expandedChecklists = {};      // tripId -> bool (overview checklist expanded)
 
   const CATEGORIES = [
     {label:'관광', icon:'landmark'}, {label:'맛집', icon:'utensils'}, {label:'카페', icon:'coffee'},
@@ -270,6 +295,14 @@
   ];
   const FLIGHT_TYPES = [
     {label:'출국', icon:'plane-takeoff'}, {label:'귀국', icon:'plane-landing'}, {label:'이동', icon:'plane'},
+  ];
+  const DEFAULT_CHECKLIST = [
+    {name:'서류 / 출국 준비', items:['여권','여권 사본','호텔 예약본','교통편 예약본','여행자보험']},
+    {name:'현금 / 카드', items:['환전','트래블월렛','신용카드']},
+    {name:'전자기기', items:['eSIM','핸드폰 충전 어댑터/케이블','워치 충전 어댑터/케이블','여행용 멀티어댑터 - 수환','여행용 멀티어댑터 - 예봄','보조배터리 - 수환','보조배터리 - 예봄','Insta360 카메라/배터리']},
+    {name:'의류', items:['수영복','속옷','양말','잠옷','외투 (돌로미티용)','운동화','크록스','구두','우산','모자','선글라스','압축팩','세탁물 보관봉투','커플룩들']},
+    {name:'세면 / 생활용품', items:['치약','칫솔','폼클렌저','수환 로션','예봄 스킨/로션','선크림','선스틱','면도기','예봄 화장품','안경','물티슈','의약품 (상비약팩)']},
+    {name:'기내 필수품', items:['목베개','안대/귀마개','가습마스크']},
   ];
   function lastToken(s){ return (s||'').trim().split(/\s+/).pop(); }
   function categoryIcon(catLabel){
@@ -517,6 +550,27 @@
   }
   function escapeHtml(s){
     return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function createDefaultChecklist(){
+    return {
+      categories: DEFAULT_CHECKLIST.map(category=>({
+        id:uid(),
+        name:category.name,
+        items:category.items.map(label=>({id:uid(), label, checked:false})),
+      })),
+    };
+  }
+  function ensureChecklist(trip){
+    if(!trip.checklist || !Array.isArray(trip.checklist.categories)) trip.checklist = createDefaultChecklist();
+    trip.checklist.categories.forEach(category=>{
+      if(!category.id) category.id=uid();
+      if(!Array.isArray(category.items)) category.items=[];
+      category.items.forEach(item=>{
+        if(!item.id) item.id=uid();
+        item.checked=!!item.checked;
+      });
+    });
+    return trip.checklist;
   }
 
   // ---------------- persistence ----------------
@@ -836,6 +890,7 @@
   function overviewView(trip){
     const wrap = el('div','overview-view');
     wrap.appendChild(flightsBlock(trip));
+    wrap.appendChild(checklistBlock(trip));
 
     let any=false;
     trip.days.forEach((day,i)=>{
@@ -883,6 +938,131 @@
     row.appendChild(head);
     row.appendChild(el('div','flight-route', `from. ${escapeHtml(flight.depCity)} ✈️ ${escapeHtml(flight.arrCity)}`));
     return row;
+  }
+
+  function checklistBlock(trip){
+    const checklist = ensureChecklist(trip);
+    const categories = checklist.categories;
+    const allItems = categories.flatMap(category=>category.items);
+    const checkedCount = allItems.filter(item=>item.checked).length;
+    const totalCount = allItems.length;
+    const expanded = !!expandedChecklists[trip.id];
+    const card = el('div','card checklist-card');
+
+    const toggle = el('button','checklist-toggle');
+    toggle.type='button';
+    toggle.setAttribute('aria-expanded', String(expanded));
+    toggle.appendChild(el('span','checklist-toggle-title','여행 전 Check List'));
+    toggle.appendChild(el('span','checklist-count', `${checkedCount} / ${totalCount}`));
+    toggle.insertAdjacentHTML('beforeend', icon('chevron-down',16));
+    toggle.classList.toggle('expanded', expanded);
+    toggle.onclick = ()=>{
+      expandedChecklists[trip.id] = !expanded;
+      renderMain();
+    };
+    card.appendChild(toggle);
+    if(!expanded) return card;
+
+    const body = el('div','checklist-body');
+    const progress = el('div','checklist-progress');
+    const progressBar = el('div','checklist-progress-bar');
+    progressBar.style.width = totalCount ? `${Math.round(checkedCount/totalCount*100)}%` : '0%';
+    progress.appendChild(progressBar);
+    body.appendChild(progress);
+
+    if(categories.length===0) body.appendChild(el('div','empty-hint','체크리스트 카테고리를 추가해보세요'));
+    categories.forEach(category=>{
+      const categoryEl = el('section','checklist-category');
+      const head = el('div','checklist-category-head');
+      head.appendChild(el('div','checklist-category-title',escapeHtml(category.name)));
+      const categoryChecked = category.items.filter(item=>item.checked).length;
+      head.appendChild(el('span','checklist-category-count',`${categoryChecked}/${category.items.length}`));
+      const deleteCategoryBtn = el('button','checklist-delete',icon('x',14));
+      deleteCategoryBtn.type='button';
+      deleteCategoryBtn.title='카테고리 삭제';
+      deleteCategoryBtn.setAttribute('aria-label',`${category.name} 카테고리 삭제`);
+      deleteCategoryBtn.onclick = ()=>{
+        const suffix = category.items.length ? `\n안의 항목 ${category.items.length}개도 함께 삭제됩니다.` : '';
+        if(!confirm(`'${category.name}' 카테고리를 삭제할까요?${suffix}`)) return;
+        checklist.categories = checklist.categories.filter(candidate=>candidate.id!==category.id);
+        save(); renderMain(); toast('카테고리를 삭제했어요');
+      };
+      head.appendChild(deleteCategoryBtn);
+      categoryEl.appendChild(head);
+
+      category.items.forEach(item=>{
+        const itemEl = el('div','checklist-item');
+        const checkbox = document.createElement('input');
+        checkbox.type='checkbox'; checkbox.checked=!!item.checked;
+        checkbox.setAttribute('aria-label',item.label);
+        checkbox.onchange = ()=>{
+          item.checked=checkbox.checked;
+          save(); renderMain();
+        };
+        const label = el('span','checklist-item-label'+(item.checked?' checked':''),escapeHtml(item.label));
+        label.onclick = ()=> checkbox.click();
+        const deleteItemBtn = el('button','checklist-delete',icon('x',13));
+        deleteItemBtn.type='button';
+        deleteItemBtn.title='항목 삭제';
+        deleteItemBtn.setAttribute('aria-label',`${item.label} 삭제`);
+        deleteItemBtn.onclick = ()=>{
+          if(!confirm(`'${item.label}' 항목을 삭제할까요?`)) return;
+          category.items = category.items.filter(candidate=>candidate.id!==item.id);
+          save(); renderMain(); toast('항목을 삭제했어요');
+        };
+        itemEl.appendChild(checkbox); itemEl.appendChild(label); itemEl.appendChild(deleteItemBtn);
+        categoryEl.appendChild(itemEl);
+      });
+
+      const addItemBtn = el('button','btn btn-ghost checklist-add-item',icon('plus',11)+'항목 추가');
+      addItemBtn.type='button';
+      addItemBtn.onclick = ()=> showChecklistItemModal(trip, category);
+      categoryEl.appendChild(addItemBtn);
+      body.appendChild(categoryEl);
+    });
+
+    const addCategoryBtn = el('button','btn btn-secondary btn-dashed btn-block checklist-add-category',icon('plus',13)+'카테고리 추가');
+    addCategoryBtn.type='button';
+    addCategoryBtn.onclick = ()=> showChecklistCategoryModal(trip);
+    body.appendChild(addCategoryBtn);
+    card.appendChild(body);
+    return card;
+  }
+
+  function showChecklistCategoryModal(trip){
+    openModal('체크리스트 카테고리 추가', dialog=>{
+      dialog.appendChild(fieldRow('checklistCategory','text','카테고리 이름 *','예: 음식 / 간식'));
+      const actions = el('div','dialog-actions');
+      const cancel = el('button','btn btn-secondary','취소');
+      const addBtn = el('button','btn btn-primary','추가');
+      cancel.onclick=closeModal;
+      addBtn.onclick=()=>{
+        const name=dialog.querySelector('[name=checklistCategory]').value.trim();
+        if(!name){ toast('카테고리 이름을 입력해주세요'); return; }
+        ensureChecklist(trip).categories.push({id:uid(),name,items:[]});
+        expandedChecklists[trip.id]=true;
+        save(); renderMain(); closeModal(); toast('카테고리를 추가했어요');
+      };
+      actions.appendChild(cancel); actions.appendChild(addBtn); dialog.appendChild(actions);
+    });
+  }
+
+  function showChecklistItemModal(trip, category){
+    openModal(`${category.name} · 항목 추가`, dialog=>{
+      dialog.appendChild(fieldRow('checklistItem','text','준비물 *','예: 상비약'));
+      const actions = el('div','dialog-actions');
+      const cancel = el('button','btn btn-secondary','취소');
+      const addBtn = el('button','btn btn-primary','추가');
+      cancel.onclick=closeModal;
+      addBtn.onclick=()=>{
+        const label=dialog.querySelector('[name=checklistItem]').value.trim();
+        if(!label){ toast('준비물 이름을 입력해주세요'); return; }
+        category.items.push({id:uid(),label,checked:false});
+        expandedChecklists[trip.id]=true;
+        save(); renderMain(); closeModal(); toast('준비물을 추가했어요');
+      };
+      actions.appendChild(cancel); actions.appendChild(addBtn); dialog.appendChild(actions);
+    });
   }
 
   function dayChipRow(trip, day, items){
@@ -986,7 +1166,7 @@
         const regions = parseRegions(dialog.querySelector('[name=regions]').value);
         if(!title || !start || !end){ toast('필수 항목(*)을 입력해주세요'); return; }
         if(end < start){ toast('종료일이 시작일보다 빠를 수 없어요'); return; }
-        const trip = {id:uid(), title, subtitle, startDate:start, endDate:end, days:buildDays(start,end,regions), flights:[]};
+        const trip = {id:uid(), title, subtitle, startDate:start, endDate:end, days:buildDays(start,end,regions), flights:[], checklist:createDefaultChecklist()};
         data.trips.push(trip); data.activeTripId = trip.id;
         save(); render(); closeModal();
         toast('여행이 생성되었습니다');
