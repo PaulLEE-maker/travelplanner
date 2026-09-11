@@ -165,8 +165,15 @@
   /* flights */
   .flight-card{margin-bottom:8px;}
   .flight-head{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .flight-head-tags{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .flight-head-tags .tag{margin-top:0;}
+  .flight-number{font-size:13px;font-weight:800;letter-spacing:.03em;color:var(--color-accent-700);}
   .flight-route{font-size:16px;font-weight:800;margin-top:8px;}
   .flight-meta{font-size:12px;opacity:.65;margin-top:6px;}
+  .flight-schedule{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:12px;}
+  .flight-time-block{background:var(--color-bg);border-radius:var(--radius-sm);padding:9px 10px;}
+  .flight-time-label{font-size:10px;font-weight:700;opacity:.5;margin-bottom:3px;}
+  .flight-time-value{font-size:12px;font-weight:700;line-height:1.35;}
   .btn-edit{padding:5px 10px;font-size:11px;flex:0 0 auto;}
 
   /* pre-trip checklist */
@@ -931,12 +938,31 @@
   function flightRow(flight, trip){
     const row = el('div','card flight-card');
     const head = el('div','flight-head');
-    head.appendChild(el('span','tag tag-accent', escapeHtml(flight.type)));
+    const headTags = el('div','flight-head-tags');
+    headTags.appendChild(el('span','tag tag-accent', escapeHtml(flight.type)));
+    if(flight.flightNo) headTags.appendChild(el('span','flight-number',escapeHtml(flight.flightNo)));
+    head.appendChild(headTags);
     const editBtn = el('button','btn btn-secondary btn-edit', icon('pencil',11)+'편집');
     editBtn.onclick = ()=> showFlightModal(trip, flight);
     head.appendChild(editBtn);
     row.appendChild(head);
     row.appendChild(el('div','flight-route', `from. ${escapeHtml(flight.depCity)} ✈️ ${escapeHtml(flight.arrCity)}`));
+
+    const moments = [
+      {label:'출발', date:flight.depDate, time:flight.depTime},
+      {label:'도착', date:flight.arrDate, time:flight.arrTime},
+    ].filter(moment=>moment.date || moment.time);
+    if(moments.length){
+      const schedule = el('div','flight-schedule');
+      moments.forEach(moment=>{
+        const block = el('div','flight-time-block');
+        block.appendChild(el('div','flight-time-label',moment.label));
+        const value = [moment.date ? fmtDate(moment.date) : '', moment.time || ''].filter(Boolean).join(' · ');
+        block.appendChild(el('div','flight-time-value',escapeHtml(value)));
+        schedule.appendChild(block);
+      });
+      row.appendChild(schedule);
+    }
     return row;
   }
 
